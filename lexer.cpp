@@ -11,6 +11,7 @@ $$ | \_/ $$ |\$$$$$$  |$$ |  \$$$$  |$$ |      \$$$$$$  |$$ |      \$$$$$$  |$$ 
 
 #include "lexer.h"
 #include <unordered_map>
+#include<unordered_set>
 #include <string>
 #include <iostream>
 
@@ -34,6 +35,7 @@ std::unordered_map<std::string, TokenType> key_words = { // 關鍵字
     {"elif" , TokenType::ELIF} ,  
     {"break" , TokenType::BREAK},
     {"continue" ,TokenType::CONTINUE},
+    {"return" , TokenType::RETURN},
     {"{" , TokenType::BRACE_OPEN},
     {"}" , TokenType::BRACE_CLOSE},
     {"[" , TokenType::BRACKET_OPEN},
@@ -44,7 +46,7 @@ std::unordered_map<std::string, TokenType> key_words = { // 關鍵字
     {"+" , TokenType::ADD} , 
     {"-" , TokenType::SUB} ,
     {"!" , TokenType::NOT} ,
-    {"/" , TokenType::DIV} , 
+    {"/" , TokenType::DIV} ,
     {"%" , TokenType::MOD} , 
     {"<<" , TokenType::SHIFT_LEFT} , 
     {">>" , TokenType::SHIFT_RIGHT} , 
@@ -61,7 +63,12 @@ std::unordered_map<std::string, TokenType> key_words = { // 關鍵字
     {"," , TokenType::COMMA} , 
     {";" , TokenType::DELIMITER},
     {"true" , TokenType::BOOL},
-    {"false" , TokenType::BOOL}
+    {"false" , TokenType::BOOL},
+    {".." , TokenType::DOTDOT} ,
+    {"class" , TokenType::CLASS} , 
+    {"function" , TokenType::FUNCTION}
+    
+
 };
  
 
@@ -106,7 +113,23 @@ bool Lexer::isEnd() {  // 判斷是否讀取越界  (eof )
 
 
 
-
+std::vector<Token> Lexer::unary_identify(std::vector<Token> tks) {
+    static const std::unordered_set<TokenType> unary_preceding_tokens = {
+        TokenType::PAREN_OPEN, TokenType::ASSIGN, TokenType::RETURN,
+        TokenType::COMMA,TokenType::DELIMITER , 
+        TokenType::BRACKET_OPEN
+    };
+    
+    for (size_t i = 0; i < tks.size(); ++i) {
+        if (tks[i].GetType() == TokenType::SUB) {
+            if (i == 0 || unary_preceding_tokens.count(tks[i - 1].GetType())) {
+                tks[i].ChangeType(TokenType::NEG);
+                tks[i].ChangeValue("NEG");
+            }
+        }
+    }
+    return tks;
+}
 
 // Tokenize function to create tokens
 std::vector<Token> Lexer::tokenize() { 
@@ -264,7 +287,7 @@ std::vector<Token> Lexer::tokenize() {
             }else
             {
                 //tokens.push_back(std::make_unique<UnknownToken>()) ; /// 出現 如 10abc 非法的命名操作 
-                tokens.push_back(Token(TokenType::UNKNOWN ,  "UNKNOWN")) ;  ; 
+                tokens.push_back(Token(TokenType::UNKNOWN ,  "UNKNOWN")) ;  
             }
             continue;
         }
@@ -307,6 +330,9 @@ std::vector<Token> Lexer::tokenize() {
             case TokenType::CONTINUE :
             tokens.push_back(Token(TokenType::CONTINUE , "CONTINUE")) ; 
                 break  ; 
+            case TokenType::RETURN :
+            tokens.push_back(Token(TokenType::RETURN , "RETURN")) ; 
+                break; 
             case TokenType::IF :
             tokens.push_back(Token(TokenType::IF , "IF")) ; 
                 break ; 
@@ -316,9 +342,15 @@ std::vector<Token> Lexer::tokenize() {
             case TokenType::ELIF:
             tokens.push_back(Token(TokenType::ELIF , "ELIF")) ;
                 break ; 
+            case TokenType::CLASS:
+            tokens.push_back(Token(TokenType::CLASS , "CLASS")) ; 
+                break;
             case TokenType::BOOL:
             tokens.push_back(Token(TokenType::BOOL , "BOOL")) ;
                 break;
+            case TokenType::FUNCTION:
+            tokens.push_back(Token(TokenType::FUNCTION , "FUNCTION")) ;     
+                break; 
             default:
                 is_push = false ; 
                 break;
@@ -333,7 +365,7 @@ std::vector<Token> Lexer::tokenize() {
   
         string  Special_Character= "" ; 
         Special_Character += current ; 
-        if (key_words.find(Special_Character) != key_words.end())
+        if (key_words.find(Special_Character) != key_words.end()) //// 這裡處理關鍵符號如 {}[]() +-*/=!><. etc...
         {
             
             advance() ; 
@@ -375,9 +407,7 @@ std::vector<Token> Lexer::tokenize() {
             case TokenType::XOR:
             tokens.push_back(Token(TokenType::XOR , "XOR")) ;  
                 break;  
-            case TokenType::DOT:
-                tokens.push_back(Token(TokenType::DOT , "DOT")) ;  
-                break;  
+            
             case TokenType::OR:
             tokens.push_back(Token(TokenType::OR , "OR")) ; 
                 break;
@@ -387,6 +417,31 @@ std::vector<Token> Lexer::tokenize() {
             case TokenType::MUL:
             tokens.push_back(Token(TokenType::MUL , "MUL")) ; 
                 break;
+            case TokenType::DOT:
+                if (!isEnd())
+                {
+                    Special_Character+= currentChar() ; 
+                    if (key_words.find(Special_Character) != key_words.end())
+                    {
+                        if (key_words[Special_Character] == TokenType::DOTDOT)
+                        {
+                            tokens.push_back(Token(TokenType::DOTDOT , "DOTDOT")) ; /// 12..33 表示使用DOUBLE
+                            advance() ; 
+                        }
+                        else
+                        {
+                        
+                            tokens.push_back(Token(TokenType::DOT , "DOT")) ; 
+
+                        }
+                    }
+                    else{
+                        tokens.push_back(Token(TokenType::DOT , "DOT")) ; 
+                    }
+                }else{
+                    tokens.push_back(Token(TokenType::DOT , "DOT")) ; 
+                }
+                break;  
             case TokenType::GREATER_THAN:
                 if (!isEnd())
                 {
@@ -501,7 +556,8 @@ std::vector<Token> Lexer::tokenize() {
                 break ; 
 
             default :
-                //tokens.push_back(std::unique_ptr<>)
+                //tokens.push_back(std::unique_ptr<>) 
+                cout<<"TOKENS NOT IN DICT" <<endl ;  ///// 這裡應該達不到 否則是 case 少打
                 break  ; 
 
             }
@@ -522,3 +578,6 @@ std::vector<Token> Lexer::tokenize() {
 
     return tokens;
  }
+
+
+

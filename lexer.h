@@ -49,6 +49,7 @@ enum class TokenType {
     BRACE_OPEN , 
     BRACE_CLOSE , 
     CONTINUE , 
+    RETURN , 
     BRACKET_OPEN , 
     BRACKET_CLOSE,
     PAREN_OPEN, // 左括号 (
@@ -57,6 +58,7 @@ enum class TokenType {
     END,        // 结束标记
     COMMA , 
     ASSIGN,
+    NEG , 
     ADD ,
     SUB , 
     MUL , 
@@ -76,20 +78,12 @@ enum class TokenType {
     NOT_GREATER_THAN ,  // 小於等於
     SHIFT_LEFT , 
     SHIFT_RIGHT , 
-
-    DOT ,         
+    DOT ,    
+    DOTDOT, // 表示雙位符點數
+    AREA ,
+    FUNCTION,      
     UNKNOWN     // 无法识别的字符
 };
-
-
-
-
-enum class Operator {
-
-    UNKNOWN 
-};
-
-
 
 
 
@@ -103,6 +97,8 @@ class Token {
         Token(TokenType t, std::string v)
             : type(t), value(v) {}
         
+        void ChangeType (TokenType ttyp) { type = ttyp ; }  
+        void ChangeValue (std::string g_val) {value = g_val ; }
         TokenType GetType() const { return type; }
         std::string GetValue() const { return value; }
     };
@@ -114,7 +110,9 @@ class Lexer {
             explicit Lexer(const std::string& input);
             //std::vector<std::unique_ptr<Token>> tokenize();  // Tokenize the input string
             vector<Token> tokenize() ; 
-             //Token tokenize1() ; 
+            vector<Token> unary_identify (vector<Token> tks ) ; 
+
+            //Token tokenize1() ; 
             // Function to print tokens to stringstream
         
         private:
