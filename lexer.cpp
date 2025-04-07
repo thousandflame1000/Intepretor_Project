@@ -47,6 +47,7 @@ std::unordered_map<std::string, TokenType> key_words = { // 關鍵字
     {"-" , TokenType::SUB} ,
     {"!" , TokenType::NOT} ,
     {"/" , TokenType::DIV} ,
+    {"*" , TokenType::MUL} , 
     {"%" , TokenType::MOD} , 
     {"<<" , TokenType::SHIFT_LEFT} , 
     {">>" , TokenType::SHIFT_RIGHT} , 
@@ -66,8 +67,8 @@ std::unordered_map<std::string, TokenType> key_words = { // 關鍵字
     {"false" , TokenType::BOOL},
     {".." , TokenType::DOTDOT} ,
     {"class" , TokenType::CLASS} , 
-    {"function" , TokenType::FUNCTION}
-    
+    {"function" , TokenType::FUNCTION} , 
+    {"any" ,TokenType::ANY} 
 
 };
  
@@ -346,7 +347,7 @@ std::vector<Token> Lexer::tokenize() {
             tokens.push_back(Token(TokenType::CLASS , "CLASS")) ; 
                 break;
             case TokenType::BOOL:
-            tokens.push_back(Token(TokenType::BOOL , "BOOL")) ;
+            tokens.push_back(Token(TokenType::BOOL , "BOOL")) ; // 這裡要判定 之後改
                 break;
             case TokenType::FUNCTION:
             tokens.push_back(Token(TokenType::FUNCTION , "FUNCTION")) ;     
@@ -575,7 +576,9 @@ std::vector<Token> Lexer::tokenize() {
     }
   //  std::make_unique<EndToken>() ; 
   tokens.push_back(Token(TokenType::END ,  "END")) ; 
-
+ // tokens.push_back(Token(TokenType::END ,  "END")) ; 
+ // tokens.push_back(Token(TokenType::END ,  "END")) ; 
+ // tokens.push_back(Token(TokenType::END ,  "END")) ; 
     return tokens;
  }
 
