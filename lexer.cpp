@@ -62,13 +62,14 @@ std::unordered_map<std::string, TokenType> key_words = { // 關鍵字
     {"&" , TokenType::AND} , 
     {"|" ,TokenType::OR} ,
     {"," , TokenType::COMMA} , 
-    {";" , TokenType::DELIMITER},
+    {";" , TokenType::SEMICOLON},
     {"true" , TokenType::BOOL},
     {"false" , TokenType::BOOL},
     {".." , TokenType::DOTDOT} ,
     {"class" , TokenType::CLASS} , 
     {"function" , TokenType::FUNCTION} , 
-    {"any" ,TokenType::ANY} 
+    {"var" ,TokenType::VAR}   
+    
 
 };
  
@@ -117,7 +118,7 @@ bool Lexer::isEnd() {  // 判斷是否讀取越界  (eof )
 std::vector<Token> Lexer::unary_identify(std::vector<Token> tks) {
     static const std::unordered_set<TokenType> unary_preceding_tokens = {
         TokenType::PAREN_OPEN, TokenType::ASSIGN, TokenType::RETURN,
-        TokenType::COMMA,TokenType::DELIMITER , 
+        TokenType::COMMA,TokenType::SEMICOLON , 
         TokenType::BRACKET_OPEN
     };
     
@@ -352,6 +353,9 @@ std::vector<Token> Lexer::tokenize() {
             case TokenType::FUNCTION:
             tokens.push_back(Token(TokenType::FUNCTION , "FUNCTION")) ;     
                 break; 
+            case TokenType::VAR:
+            tokens.push_back(Token(TokenType::VAR , "VAR"))  ; 
+        
             default:
                 is_push = false ; 
                 break;
@@ -552,8 +556,8 @@ std::vector<Token> Lexer::tokenize() {
             case TokenType::COMMA :
             tokens.push_back(Token(TokenType::COMMA , "COMMA")) ; 
                 break; 
-            case TokenType::DELIMITER :
-            tokens.push_back(Token(TokenType::DELIMITER , "DELIMITER")) ; 
+            case TokenType::SEMICOLON :
+            tokens.push_back(Token(TokenType::SEMICOLON , "DELIMITER")) ; 
                 break ; 
 
             default :
@@ -576,9 +580,9 @@ std::vector<Token> Lexer::tokenize() {
     }
   //  std::make_unique<EndToken>() ; 
   tokens.push_back(Token(TokenType::END ,  "END")) ; 
- // tokens.push_back(Token(TokenType::END ,  "END")) ; 
- // tokens.push_back(Token(TokenType::END ,  "END")) ; 
- // tokens.push_back(Token(TokenType::END ,  "END")) ; 
+  tokens.push_back(Token(TokenType::END ,  "END_1")) ; 
+  tokens.push_back(Token(TokenType::END ,  "END_2")) ; 
+  tokens.push_back(Token(TokenType::END ,  "END_2")) ; 
     return tokens;
  }
 

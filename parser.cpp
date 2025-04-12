@@ -813,7 +813,7 @@ shared_ptr<Node> Parser::ParseObject()
             operation.addChild(l_ptr) ; 
             operation.addChild(r_ptr) ; 
             shared_ptr<Node> return_pointer = std::make_shared<Node> (operation) ; 
-            l_ptr = return_pointer; 
+            l_ptr = return_pointer;
 
         }
         else
