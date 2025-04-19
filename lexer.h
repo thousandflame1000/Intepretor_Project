@@ -54,7 +54,7 @@ enum class TokenType {
     BRACKET_CLOSE,
     PAREN_OPEN, // 左括号 (
     PAREN_CLOSE,// 右括号 )
-    DELIMITER , 
+    SEMICOLON , 
     END,        // 结束标记
     COMMA , 
     ASSIGN,
@@ -81,7 +81,9 @@ enum class TokenType {
     DOT ,    
     DOTDOT, // 表示雙位符點數
     AREA ,
-    FUNCTION,      
+    FUNCTION, 
+    CLASS ,     
+    VAR,
     UNKNOWN     // 无法识别的字符
 };
 

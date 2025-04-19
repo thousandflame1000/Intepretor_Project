@@ -1,0 +1,14 @@
+<assign> → <id> = <expr>
+<id> → A | B | C
+
+
+
+<expr> → <term> * <expr> | <expr>
+<term> → <term> * <factor>
+| <factor>
+<factor> → ( <expr> )
+| <id>
+
+
+
+
