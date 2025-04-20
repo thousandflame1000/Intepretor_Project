@@ -4,6 +4,7 @@
 #include <stack>
 #include <unordered_map>
 #include <variant> 
+#include <queue>
 
 
 using namespace std ; 
@@ -26,13 +27,6 @@ stack<unordered_map< int ,  bool>> Scope;
 
 
 Intepretor::Intepretor(const std::string& input) : input(input), index(0) {}
-
-
-
-
-
-
-
 void Intepretor::Code_Generation(shared_ptr<Node> node) {
 
     if (node->type == NodeType::BLOCK)
@@ -170,10 +164,28 @@ void Intepretor::Code_Generation(shared_ptr<Node> node) {
     {
         int count = 0  ;
         Instructions.push_back(ByteCode(Bytecode_type::CALL_FUNCTION , node->children[0]->value));
-        
+        for (int i = 0 ;  i < node->children.size() ; i++)
+        {
+            
+        }
     }else if (node ->type == NodeType::DECLARATION)
     {
-        
+        Instructions.push_back(ByteCode(Bytecode_type::DECLARE , node ->children[0]->value)) ;         
+    }else if (node->type == NodeType::FUNCTION)
+    {
+        Instructions.push_back(ByteCode(Bytecode_type::JUMP)) ; 
+        Instructions.push_back(ByteCode(Bytecode_type::PUSH_SCOPE)) ; 
+
+    }else if (node->type == NodeType::ARGUMENT )
+    {
+        for (int i = 0 ; i <node->children.size() ; i++)
+        {
+            Code_Generation(node->children[i]);
+            Instructions.push_back(ByteCode(Bytecode_type::PUSH_ARGUMENT)) ; 
+                        
+
+        }
+
     }
 
 
