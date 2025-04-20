@@ -54,6 +54,8 @@ enum Bytecode_type {
     AND,
     OR,
     NOT,
+    NEG,
+    
     EQUAL,
     NOT_EQUAL,NOT_GREATER_THAN,NOT_LESS_THAN,SHIFT_LEFT,SHIFT_RIGHT,
     BITWISE_OR,
@@ -64,7 +66,9 @@ enum Bytecode_type {
     GREATER_THAN,
     PUSH_LOCAL,
     POP_LOCAL,
-    CLEAR 
+    CLEAR ,
+    PUSH_ARGUMENT , 
+    POP_ARGUMENT , 
 };
 
 // 類型分類（可選）
@@ -106,7 +110,7 @@ class Intepretor {
         std::string input;
         size_t index;
     public:
-
+    
         vector<ByteCode> Instructions ; 
         void Code_Generation(shared_ptr<Node>) ; 
         
