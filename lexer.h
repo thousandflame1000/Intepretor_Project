@@ -58,6 +58,7 @@ enum class TokenType {
     END,        // 结束标记
     COMMA , 
     ASSIGN,
+    LL ,
     NEG , 
     ADD ,
     SUB , 
@@ -66,7 +67,6 @@ enum class TokenType {
     MOD , 
     AND ,
     OR,
-    XOR , 
     NOT ,
     EQUAL ,  
     TRUE,
@@ -84,6 +84,12 @@ enum class TokenType {
     FUNCTION, 
     CLASS ,     
     VAR,
+    BITWISE_OR , 
+    BITWISE_AND,
+    BITWISE_XOR,
+    BITWISE_NOT,
+    WHITESPACE ,
+    NIL , 
     UNKNOWN     // 无法识别的字符
 };
 

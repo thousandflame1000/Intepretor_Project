@@ -57,10 +57,16 @@ std::unordered_map<std::string, TokenType> key_words = { // 關鍵字
     {">=" , TokenType::NOT_LESS_THAN},
     {"=" , TokenType::ASSIGN},
     {"==" ,TokenType::EQUAL} , 
+    
     {"!=" , TokenType::NOT_EQUAL} , 
-    {"^" , TokenType::XOR} , 
-    {"&" , TokenType::AND} , 
-    {"|" ,TokenType::OR} ,
+    
+    {"^" , TokenType::BITWISE_XOR} , 
+    {"&" , TokenType::BITWISE_AND} , 
+    {"|" ,TokenType::BITWISE_OR} ,
+    {"and" , TokenType::AND},
+    {"or" , TokenType::OR} ,
+    {"not" , TokenType::NOT} , 
+    
     {"," , TokenType::COMMA} , 
     {";" , TokenType::SEMICOLON},
     {"true" , TokenType::BOOL},
@@ -68,8 +74,8 @@ std::unordered_map<std::string, TokenType> key_words = { // 關鍵字
     {".." , TokenType::DOTDOT} ,
     {"class" , TokenType::CLASS} , 
     {"function" , TokenType::FUNCTION} , 
-    {"var" ,TokenType::VAR}   
-    
+    {"var" ,TokenType::VAR}   ,
+    {"ll" , TokenType::LL}
 
 };
  
@@ -143,7 +149,7 @@ std::vector<Token> Lexer::tokenize() {
         if (current == ' ') {  advance(); continue;}
         if (current == '\0') {break ; }  
         if (current == '\n') {advance() ; continue;} 
-        if(current == '\'') {  // 处理字符                                     ///// <<<------- 這邊有 EDGE CASE 要處理 
+        /*if(current == '\'') {  // 处理字符                                     ///// <<<------- 這邊有 EDGE CASE 要處理 
             bool is_char_get = false;  
             bool something_error = false; 
 
@@ -180,7 +186,6 @@ std::vector<Token> Lexer::tokenize() {
             // 检查是否符合有效的转义字符
             if (next_next == '\'') {
                 advance();   
-
                 if (next_next != '\'') {
                     previous();  // 回退字符流，处理错误情况 ////// previous   HERE 
                     is_char_get = false;
@@ -198,7 +203,6 @@ std::vector<Token> Lexer::tokenize() {
                     case '\"': get_char = '\"'; break;  // 处理双引号
                     case '0': get_char = '\0'; break;  // 处理空字符（null）
                     default:
-                        
                         cout << "UNKOWN CHAR ASSIGNED" << endl ; 
                         is_char_get = false;  // 转义字符无效
                         break;
@@ -213,68 +217,57 @@ std::vector<Token> Lexer::tokenize() {
                     tokens.push_back(Token(TokenType::UNKNOWN ,  "UNKNOWN")) ;  ; 
                 }
             continue; 
-        }
+        } */
         if (current == '\"')  ///// 這裡開始處理
         {
             string str =""; 
+            bool string_compelete = false ; 
             bool is_hold_slash = false ;
             advance() ;  
             char c = currentChar() ; 
-            bool out = false ; 
-            
-            while(c != '\"' && !is_hold_slash) 
+            while(!isEnd()) 
             {
-                if (c == '\n' )
-                {
-                    continue;
-                }
+                
                 if (!is_hold_slash)
                 {
-                    if (c == '\\'){
+                    if (currentChar()== '\\'){
                         is_hold_slash = true ; 
-                        advance() ;
-                         
                         c = currentChar() ; 
+                        str += c ; 
+                        advance() ; 
                         continue; 
                     }
-                    str+= c ; 
-                    advance() ; 
-
-                    c = currentChar() ; 
-                   
-                    if (out) 
+                    if (currentChar() == '\"')
                     {
-                        cout << "how" << endl ; 
+                        string_compelete = true ; 
+                        break ;
                     }
-                    if (c == '\"' && !is_hold_slash) {  advance() ; break;}
-                    continue;
+                    c  = currentChar() ; 
+                    str+= c ;
+                    advance();
+                   continue;
                 }
                 if(is_hold_slash)
                 {
-                    is_hold_slash = false ; 
-                    switch (c)
-                    {
-                    case 'n':str += '\n'; continue;break; // 处理换行符
-                    case '\\':str += '\\';continue;break; // 处理反斜杠
-                    case 't':str += '\t'; continue;break; // 处理制表符
-                    case 'r':str += '\r'; continue;break;// 处理回车符
-                    case 'b':str += '\b'; continue;break;  // 处理退格符
-                    case 'f':str += '\f'; continue;break;// 处理换页符
-                    case '\'':str += '\'';continue;break;// 处理单引号
-                    case '\"':str += '\"';continue;break; // 处理双引号 
-                    case '0':str += '\0'; continue;break;// 处理空字符（null）
-                    default: cout <<"UNKOWN CHAR ASSIGNED IN STRING"<< endl ;   break; // 怕崩 默認不加
-                    }
+                    c = currentChar() ; 
+                    is_hold_slash= false ; 
+                    str += c ; 
+                    advance() ; 
+                    continue;
                 }    
             }
 
-            
-            //tokens.push_back(std::make_unique<StringToken>(str)) ;  
-            tokens.push_back(Token(TokenType::STRING , str)) ; 
+            advance() ; 
+            //tokens.push_back(std::make_unique<StringToken>(str)) ; 
+            if (string_compelete)
+            {
+                tokens.push_back(Token(TokenType::STRING , str)) ; 
+            } else
+            {
+                tokens.push_back(Token(TokenType::UNKNOWN, "UNKNOWN")) ; 
+            }
             continue;
         } //// ///// 這裡結束處理字串
-
-         
         if (isdigit(current)) { /// 這裡開始處理數字 
             string number ; 
             while (isdigit(currentChar()) ) {
@@ -326,6 +319,15 @@ std::vector<Token> Lexer::tokenize() {
             case TokenType::WHILE : 
             tokens.push_back(Token(TokenType::WHILE , "WHILE")) ; 
                 break ; 
+            case TokenType::OR :
+            tokens.push_back(Token(TokenType::OR , "OR")) ; 
+                break ; 
+            case TokenType::AND :
+            tokens.push_back(Token(TokenType::AND , "AND")) ; 
+                break ; 
+            case TokenType::NOT : 
+            tokens.push_back(Token(TokenType::NOT , "NOT")) ; 
+                break;
             case TokenType::BREAK :
             tokens.push_back(Token(TokenType::BREAK , "BREAK")) ;
                 break ; 
@@ -348,14 +350,14 @@ std::vector<Token> Lexer::tokenize() {
             tokens.push_back(Token(TokenType::CLASS , "CLASS")) ; 
                 break;
             case TokenType::BOOL:
-            tokens.push_back(Token(TokenType::BOOL , "BOOL")) ; // 這裡要判定 之後改
+             tokens.push_back(Token(TokenType::BOOL ,  str)) ; // 這裡要判定 之後改
                 break;
             case TokenType::FUNCTION:
             tokens.push_back(Token(TokenType::FUNCTION , "FUNCTION")) ;     
                 break; 
             case TokenType::VAR:
             tokens.push_back(Token(TokenType::VAR , "VAR"))  ; 
-        
+                break ; 
             default:
                 is_push = false ; 
                 break;
@@ -408,17 +410,16 @@ std::vector<Token> Lexer::tokenize() {
                 break;
             case TokenType::MOD:
             tokens.push_back(Token(TokenType::MOD , "MOD")) ; 
-                break;
-            case TokenType::XOR:
-            tokens.push_back(Token(TokenType::XOR , "XOR")) ;  
                 break;  
-            
-            case TokenType::OR:
-            tokens.push_back(Token(TokenType::OR , "OR")) ; 
+            case TokenType::BITWISE_OR:
+            tokens.push_back(Token(TokenType::BITWISE_OR , "BITWISE_OR")) ; 
                 break;
-            case TokenType::AND:
-            tokens.push_back(Token(TokenType::AND , "AND")) ; 
+            case TokenType::BITWISE_AND:
+            tokens.push_back(Token(TokenType::BITWISE_AND , "BITWISE_AND")) ; 
                 break; 
+            case TokenType::BITWISE_XOR :
+            tokens.push_back(Token(TokenType::BITWISE_XOR , "BITWISE_XOR")) ; 
+                break ; 
             case TokenType::MUL:
             tokens.push_back(Token(TokenType::MUL , "MUL")) ; 
                 break;
@@ -557,9 +558,11 @@ std::vector<Token> Lexer::tokenize() {
             tokens.push_back(Token(TokenType::COMMA , "COMMA")) ; 
                 break; 
             case TokenType::SEMICOLON :
-            tokens.push_back(Token(TokenType::SEMICOLON , "DELIMITER")) ; 
+            tokens.push_back(Token(TokenType::SEMICOLON , "SEMICOLON")) ; 
                 break ; 
+          
 
+            
             default :
                 //tokens.push_back(std::unique_ptr<>) 
                 cout<<"TOKENS NOT IN DICT" <<endl ;  ///// 這裡應該達不到 否則是 case 少打

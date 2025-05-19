@@ -32,8 +32,8 @@ $$ | \_/ $$ |\$$$$$$  |$$ |  \$$$$  |$$ |      \$$$$$$  |$$ |      \$$$$$$  |$$ 
 <arguments> ::= <expression> | <expression> "," <arguments> | ε
 
 
-/////
-<expression> ::= <bool> | <integer> | <flaot> | <string> | <char> |<table> | 
+///// 
+<expression> ::= <bool> | <integer> |<flaot> | <string> | <char> |<table> | 
 
 ////
 
@@ -169,7 +169,7 @@ shared_ptr<Node> Parser::ParseInit()
     init.addChild(first_init) ; 
    
     advance() ; 
-    cout <<"init reached 1 " << endl ; 
+   // cout <<"init reached 1 " << endl ; 
     while (currentToken().GetType() == TokenType::COMMA ) 
     {
         advance() ; 
@@ -187,7 +187,7 @@ shared_ptr<Node> Parser::ParseForCondition()
     if (currentToken().GetType() == TokenType::SEMICOLON)
     {
         previous()  ; 
-        Node true_node (NodeType::BOOL , "TRUE") ; 
+        Node true_node (NodeType::BOOL , "true") ; 
         condtion_do.addChild(std::make_shared<Node>(true_node)) ; 
         return std::make_shared<Node> (condtion_do) ; 
     }
@@ -334,9 +334,9 @@ shared_ptr<Node> Parser::ParseBlock()
         }
         else
         {
-            shared_ptr<Node> stmt_node = ParseAssign_Or_FunctionAsStatemente();  // 假設有 ParseStatement 處理語句
+            shared_ptr<Node> stmt_node = ParseStatement();  // 假設有 ParseStatement 處理語句
             block_node->addChild(stmt_node);
-            advance() ; 
+            advance() ;  
         }
 
         // 檢查是否有分號結尾
@@ -346,7 +346,7 @@ shared_ptr<Node> Parser::ParseBlock()
         }else 
         {
             cout << "EXPECT ';' AFTER STATEMENT IN BLOCK  " << endl ;      
-            
+            ERROR(); 
         }
 
     }
@@ -396,7 +396,7 @@ shared_ptr<Node> Parser::ParseArguments()   /// ARGUMENTS 入口從 '('的後一
 shared_ptr <Node> Parser::ParsElse ()
 {   
     Node base_node (NodeType::CONDITION_DO , "CONDITION_DO") ;     
-    Node true_node (NodeType::BOOL , "TRUE") ; 
+    Node true_node (NodeType::BOOL , "true") ; 
     shared_ptr<Node> l_ptr = std::make_shared<Node> (true_node) ;  
     shared_ptr<Node> r_ptr = ParseBlock() ; 
     base_node.addChild(l_ptr) ; 
@@ -477,7 +477,7 @@ shared_ptr<Node> Parser::ParseCreateFunction()
         cout << "EXPECTED IDENTIFIER WHEN PARSING FUNCTION " << endl ; 
     }
 
-   f.value = "FUNCTION" + currentToken().GetValue() ; 
+   f.value =currentToken().GetValue() ; 
 
 
     advance() ; 
@@ -494,7 +494,6 @@ shared_ptr<Node> Parser::ParseCreateFunction()
 shared_ptr<Node> Parser::ParseCreateVariable()
 {
     Node declare_node (NodeType::DECLARATION , "DECLARATION") ; 
-    
     if (currentToken().GetType() == TokenType::VAR  && nextToken().GetType()==TokenType::IDENTIFIER) //  sus 
     {
         advance();
@@ -525,13 +524,13 @@ shared_ptr<Node> Parser::ParseAssign_Only() // table 用來禁止多重 assign
 {
 
 
-    Node l (NodeType::VARIABLE , currentToken().GetValue()) ; 
-    shared_ptr<Node> l_ptr = std::make_shared<Node> (l) ; 
+    //Node l (NodeType::VARIABLE , currentToken().GetValue()) ; // here fucking sus 
+    shared_ptr<Node> l_ptr = ParseLogic_OR() ; 
     advance() ; 
     if (Match(TokenType::ASSIGN))
     {
-        cout << "reached5" << endl ; 
-        Node operation(NodeType::BINARY , "ASSIGN")  ; 
+       // cout << "reached5" << endl ; 
+        Node operation(NodeType::ASSIGN_KEY , "ASSIGN_KEY")  ; 
         advance() ; 
         shared_ptr<Node> r_ptr =  ParseLogic_OR() ; 
         advance() ; 
@@ -540,13 +539,67 @@ shared_ptr<Node> Parser::ParseAssign_Only() // table 用來禁止多重 assign
         shared_ptr<Node> base_ptr = std::make_shared<Node> (operation) ; 
         l_ptr = base_ptr ;    
     }
-    
-
-    l_ptr ->print() ; 
 
     previous() ; 
     return l_ptr ; 
 }
+
+
+
+
+shared_ptr<Node> Parser::ParseStatement()
+{
+    if (currentToken().GetType() == TokenType::CONTINUE)
+    {
+        Node continue_node(NodeType::CONTINUE , "CONTINUE") ;
+        return std::make_shared<Node>(continue_node) ; 
+    }   
+    if (currentToken().GetType() == TokenType::BREAK)
+    {
+        Node break_node(NodeType::BREAK , "BREAK") ;
+        return std::make_shared<Node>(break_node) ; 
+    }
+    if (currentToken().GetType() == TokenType::RETURN)
+    {
+        Node return_node (NodeType::RETURN , "RETURN") ;
+        if(nextToken().GetType() == TokenType::SEMICOLON)
+        {
+            return std::make_shared<Node> (return_node) ; 
+        } 
+        advance();
+        shared_ptr<Node> l_ptr =  ParseAssign_Or_FunctionAsStatemente() ; 
+        return_node.addChild(l_ptr) ; 
+        return std::make_shared<Node> (return_node) ;
+    }
+    if (currentToken().GetType() == TokenType::VAR )
+    {
+        Node declartion_node (NodeType::DECLARATION , "DECLARATION") ; 
+        if (nextToken().GetType() == TokenType::IDENTIFIER)
+        {
+            advance();
+            Node l (NodeType::VARIABLE  , currentToken().GetValue()) ; 
+            shared_ptr<Node> l_ptr = std::make_shared<Node> (l) ; 
+            declartion_node.addChild(l_ptr) ; 
+            if (nextToken().GetType() == TokenType::ASSIGN)
+            {
+             advance() ;  advance() ; 
+             shared_ptr<Node> r_ptr = ParseAssign_Or_FunctionAsStatemente() ;   
+             declartion_node.addChild(r_ptr); 
+            }
+            return std::make_shared<Node> (declartion_node) ; 
+        }else
+        {
+            cout << "EXPECTED IDENTIFIER AFTER VAR " << endl ; 
+            ERROR();
+        }
+    
+    }
+    return ParseAssign_Or_FunctionAsStatemente() ; 
+}
+
+
+
+
 
 
 shared_ptr<Node> Parser::ParseAssign_Or_FunctionAsStatemente()
@@ -554,12 +607,8 @@ shared_ptr<Node> Parser::ParseAssign_Or_FunctionAsStatemente()
     shared_ptr<Node> l_ptr;
 
     // 處理 var 開頭的變數宣告
-    if (currentToken().GetType() == TokenType::VAR) {
-        l_ptr = ParseCreateVariable();
-    } else {
-        l_ptr = ParseLogic_OR();
-    }
-
+    l_ptr = ParseLogic_OR();
+    
     advance(); // 看看接下來是什麼
 
     // 檢查是否是賦值（右結合）
@@ -802,7 +851,7 @@ shared_ptr<Node> Parser::ParseBitwise_AND()
 shared_ptr<Node> Parser::ParseShift()
 {
     // 位移操作符解析
-    shared_ptr<Node> l_ptr = ParseTerm();  // 基本運算項
+    shared_ptr<Node> l_ptr = ParseExpression();  // 基本運算項
 
     advance();
 
@@ -813,7 +862,7 @@ shared_ptr<Node> Parser::ParseShift()
             Node operation(NodeType::BINARY, "SHIFT_LEFT");
             operation.addChild(l_ptr);
             advance();
-            shared_ptr<Node> r_ptr = ParseTerm();  
+            shared_ptr<Node> r_ptr = ParseExpression();  
             advance();
             operation.addChild(r_ptr);
             l_ptr = std::make_shared<Node>(operation);
@@ -823,7 +872,7 @@ shared_ptr<Node> Parser::ParseShift()
             Node operation(NodeType::BINARY, "SHIFT_RIGHT");
             operation.addChild(l_ptr);
             advance();
-            shared_ptr<Node> r_ptr = ParseTerm();  
+            shared_ptr<Node> r_ptr = ParseExpression();  
             advance();
             operation.addChild(r_ptr);
             l_ptr = std::make_shared<Node>(operation);
@@ -835,7 +884,7 @@ shared_ptr<Node> Parser::ParseShift()
 }
 
 
-shared_ptr<Node> Parser::ParseExpression()    
+shared_ptr<Node> Parser::ParseExpression()  
 {
     shared_ptr<Node> l_ptr = ParseTerm() ; 
     advance() ;   /// why it pused to 2 when 1+2 
@@ -974,12 +1023,6 @@ shared_ptr<Node> Parser::ParseFactor()
 
     return ParseDots_Or_NonNumericValue() ; 
 }
-
-
-
-
-
-
 shared_ptr<Node> Parser::ParseTable()
 {
 
@@ -991,16 +1034,18 @@ shared_ptr<Node> Parser::ParseTable()
         return std::make_shared<Node> (table);
     }
     advance() ; 
-    shared_ptr<Node> first_data = ParseAssign_Or_FunctionAsStatemente(); 
+    shared_ptr<Node> first_data = ParseAssign_Only(); 
     table.addChild(first_data) ;  
     advance() ; 
     while (Match(TokenType::COMMA))
     {
         advance() ; 
-        shared_ptr<Node> next_argument = ParseAssign_Or_FunctionAsStatemente() ; 
+        shared_ptr<Node> next_argument = ParseAssign_Only() ; 
         table.addChild(next_argument) ; 
+
         advance() ; 
     }
+    
     if (!Match(TokenType::BRACKET_CLOSE))
     {
         cout << "TABLE IS NOT PARSED " << endl ; 
@@ -1047,6 +1092,21 @@ shared_ptr<Node> Parser::ParseDots_Or_NonNumericValue()
         shared_ptr<Node> return_pointer = std::make_shared<Node> (const_node) ; 
         return return_pointer ; 
     }
+    if(currentToken().GetType() == TokenType::BREAK) /// lexer 尚未寫入boolean 判斷
+    {
+        Node const_node (NodeType::BREAK ,"BREAK") ; 
+        shared_ptr<Node> return_pointer = std::make_shared<Node> (const_node) ; 
+        return return_pointer ; 
+    }
+    if(currentToken().GetType() == TokenType::CONTINUE) /// lexer 尚未寫入boolean 判斷
+    {
+        Node const_node (NodeType::CONTINUE , "CONTINUE") ; 
+        shared_ptr<Node> return_pointer = std::make_shared<Node> (const_node) ; 
+        return return_pointer ; 
+    }
+
+
+
     Node idk (NodeType::UNKNOWN , "UNKNOWN in ParseDots_Or_NonNumericValue ") ;
     cout <<"UNKNOWN in ParseDots_Or_NonNumericValue :"<<currentToken().GetValue() << endl ; 
     
@@ -1109,7 +1169,7 @@ shared_ptr<Node> Parser::ParseFloat_Double()      ///// <float> :: <number> |"."
     return return_pointer;
 }
 
-shared_ptr<Node> Parser::ParseObject()
+shared_ptr<Node> Parser::ParseObject() // suspecious here 
 {
     shared_ptr<Node> l_ptr = ParseCallFunction_Or_Variable_Or_Indexing() ; 
   
@@ -1139,7 +1199,6 @@ shared_ptr<Node> Parser::ParseObject()
 } 
 shared_ptr<Node> Parser::ParseCallFunction_Or_Variable_Or_Indexing() // here !! 
 {
-  
     if (currentToken().GetType() != TokenType::IDENTIFIER )
     {
         cout << "EXPECTED IDENTIFIER IN FUNCTION OR SOMETHING ELSE ;/ " ; 
@@ -1147,7 +1206,7 @@ shared_ptr<Node> Parser::ParseCallFunction_Or_Variable_Or_Indexing() // here !!
     }   
     Node var (NodeType::VARIABLE , currentToken().GetValue()) ;
     shared_ptr<Node> var_ptr = std::make_shared<Node> (var) ; 
-    cout << nextToken().GetValue() << endl ; 
+    //cout << nextToken().GetValue() << endl ; 
     while (nextToken().GetType() == TokenType::PAREN_OPEN || nextToken().GetType() ==TokenType::BRACKET_OPEN )
     {
     
@@ -1167,15 +1226,15 @@ shared_ptr<Node> Parser::ParseCallFunction_Or_Variable_Or_Indexing() // here !!
             Node indexing (NodeType::INDEX , "INDEX") ; 
             indexing.addChild(var_ptr) ; 
             indexing.addChild(ParseIndexing()) ;
-            cout << indexing.children[1]->value ;
+           // cout << indexing.children[1]->value ;
             shared_ptr<Node> i_ptr  = std::make_shared<Node> (indexing ); 
             
             var_ptr= i_ptr ;     
             continue;
         }
-    }
-    
+    }   
     return var_ptr  ; 
+
 }
 
 

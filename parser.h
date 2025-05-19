@@ -53,12 +53,16 @@ enum class NodeType {
     EMPTY , 
     FOR , 
     WHILE , 
+    ASSIGN_KEY , 
     ARGUMENT, 
     BLOCK ,
     DELIMITER ,
     CHAR , 
     DO,
-    CONDITION_DO , 
+    CONDITION_DO ,
+    BREAK , 
+    CONTINUE ,  
+    RETURN , 
     UNKNOWN , 
 
 };
@@ -134,7 +138,7 @@ class Parser {
         shared_ptr<Node> ParseShift() ; 
         shared_ptr<Node> ParseCompare() ; 
         shared_ptr<Node> ParseTable() ; 
-
+        shared_ptr<Node> ParseReturn(); 
         shared_ptr<Node> ParseLogic_OR();
         shared_ptr<Node> ParseLogic_AND();
         shared_ptr<Node> ParseLogic_XOR();
