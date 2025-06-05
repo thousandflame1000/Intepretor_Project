@@ -149,6 +149,9 @@ void Interpreter::Code_Generation(shared_ptr<Node> node) {
     }else if (node ->type == NodeType::STRING)
     {
         Instructions.push_back(ByteCode(Bytecode_type::LOAD_CONST , node->value)) ;    
+    }else if (node-> type == NodeType::NIL )
+    {
+        Instructions.push_back(ByteCode(Bytecode_type::LOAD_CONST , nil{}) ); 
     }
     else if (node ->type == NodeType::IF){
     
@@ -177,10 +180,6 @@ void Interpreter::Code_Generation(shared_ptr<Node> node) {
             {
                 one_state = true ; 
             }
-
-
-
-
              Code_Generation(node->children[i]->children[0]) ; 
             
              JUMP_FROM = Instructions.size();
@@ -234,8 +233,6 @@ void Interpreter::Code_Generation(shared_ptr<Node> node) {
             Code_Generation(node->children[0]->children[i]);
             Instructions.push_back(ByteCode(Bytecode_type::CLEAR));
         }
-    
-
         Instructions.push_back(ByteCode(Bytecode_type::START_LOOP));
             // 3. 標記 loop 開始位置
         int loop_start = Instructions.size();
@@ -286,7 +283,6 @@ void Interpreter::Code_Generation(shared_ptr<Node> node) {
             Code_Generation(node->children[1]); 
         }else
         {
-
             Instructions.push_back(ByteCode(Bytecode_type::LOAD_CONST , nil{})) ; 
         }
 
@@ -374,7 +370,7 @@ void Interpreter::Code_Generation(shared_ptr<Node> node) {
             Code_Generation(node->children[0]) ;
         }else
         {
-            ByteCode(Bytecode_type::LOAD_CONST , nil{});
+           Instructions.push_back( ByteCode(Bytecode_type::LOAD_CONST , nil{}));
         }
         Instructions.push_back(ByteCode(Bytecode_type::RETURN)) ; 
     }
@@ -690,8 +686,15 @@ enum class build_in {
     LEN,
     TYPE,
     INPUT,
-    RANDOM
-    // 可以擴充更多
+    RANDOM,
+    FOREACH , 
+    ERROR  , 
+    SUB_STR , 
+    TO_INT , 
+    TO_STRING,
+    TO_DOUBLE , 
+    TO_FLOAT  , 
+    
 };
 
 
@@ -702,7 +705,13 @@ unordered_map<string, build_in> BUILD_IN_FUNCTION = {
     {"type", build_in::TYPE},
     {"input", build_in::INPUT},
     {"random", build_in::RANDOM} , 
-    
+    {"foreach" , build_in::FOREACH},
+    {"error" ,build_in::ERROR } , 
+    {"sub_str" , build_in::SUB_STR},
+    {"to_string",build_in::TO_STRING},
+    {"to_int" , build_in::TO_INT},
+    {"to_float", build_in::TO_FLOAT},
+    {"to_double",build_in::TO_DOUBLE}
 };
 bool is_build_in(const string& str)
 {
@@ -718,32 +727,305 @@ Var do_build_in(const string& str)
 
     switch (func)
     {
+    case build_in::TO_STRING: {
+    if (ARGS_QUE.empty()) return nil{};
+    if (ARGS_QUE.top().empty()) return nil{};
 
-        case build_in::PRINT: {
+    Var arg = ARGS_QUE.top().front();
+    ARGS_QUE.pop();
+
+    std::string result = std::visit([](auto&& val) -> std::string {
+        using T = std::decay_t<decltype(val)>;
+        if constexpr (std::is_same_v<T, nil>) {
+            return "$nil";
+        } else if constexpr (std::is_same_v<T, bool>) {
+            return val ? "$true" : "$false";
+        } else if constexpr (std::is_same_v<T, std::string>) {
+            return val;
+        } else if constexpr (std::is_same_v<T, function>) {
+            return "$function";
+        } else if constexpr (std::is_same_v<T, std::shared_ptr<table>>) {
+            char buffer[20];
+            std::sprintf(buffer, "0x%p", static_cast<void*>(val.get()));
+            return std::string("$table: ") + buffer;
+        } else {
+            return std::to_string(val);
+        }
+    }, arg);
+
+    return result;
+    }
+
+    case build_in::TO_INT:
+    {
+        if (ARGS_QUE.empty()) return nil{};
+        if (ARGS_QUE.top().empty()) return nil{};
+
+        Var arg = ARGS_QUE.top().front(); ARGS_QUE.pop();
+
+        Var result = std::visit([](auto&& val) -> Var {
+            using T = std::decay_t<decltype(val)>;
+
+            if constexpr (std::is_same_v<T, nil>) {
+                return nil{};
+            } else if constexpr (std::is_same_v<T, bool>) {
+                return val ? 1 : 0;
+            } else if constexpr (std::is_same_v<T, int>) {
+                return val;
+            } else if constexpr (std::is_same_v<T, float>) {
+                return static_cast<int>(val);
+            } else if constexpr (std::is_same_v<T, double>) {
+                return static_cast<int>(val);
+            } else if constexpr (std::is_same_v<T, std::string>) {
+                try {
+                    size_t idx;
+                    int num = std::stoi(val, &idx);
+                    if (idx != val.length()) {
+                        return nil{}; // 
+                    }
+                    return num;
+                } catch (...) {
+                    return nil{};
+                }
+            } else {
+                return nil{};
+            }
+        }, arg);
+
+        return result;
+    }
+    case build_in::TO_FLOAT:
+    {
+        if (ARGS_QUE.empty()) return nil{};
+        if (ARGS_QUE.top().empty()) return nil{};
+
+        Var arg = ARGS_QUE.top().front(); ARGS_QUE.pop();
+
+        Var result = std::visit([](auto&& val) -> Var {
+            using T = std::decay_t<decltype(val)>;
+
+            if constexpr (std::is_same_v<T, nil>) {
+                return nil{};
+            } else if constexpr (std::is_same_v<T, bool>) {
+                return val ? 1.0f : 0.0f;
+            } else if constexpr (std::is_same_v<T, int>) {
+                return static_cast<float>(val);
+            } else if constexpr (std::is_same_v<T, float>) {
+                return val;
+            } else if constexpr (std::is_same_v<T, double>) {
+                return static_cast<float>(val);
+            } else if constexpr (std::is_same_v<T, std::string>) {
+                try {
+                    size_t idx;
+                    float num = std::stof(val, &idx);
+                    if (idx != val.length()) return nil{};
+                    return num;
+                } catch (...) {
+                    return nil{};
+                }
+            } else {
+                return nil{};
+            }
+        }, arg);
+
+        return result;
+    }
+
+
+    case build_in::TO_DOUBLE:
+    {
+        if (ARGS_QUE.empty()) return nil{};
+        if (ARGS_QUE.top().empty()) return nil{};
+
+        Var arg = ARGS_QUE.top().front(); ARGS_QUE.pop();
+
+        Var result = std::visit([](auto&& val) -> Var {
+            using T = std::decay_t<decltype(val)>;
+
+            if constexpr (std::is_same_v<T, nil>) {
+                return nil{};
+            } else if constexpr (std::is_same_v<T, bool>) {
+                return val ? 1.0 : 0.0;
+            } else if constexpr (std::is_same_v<T, int>) {
+                return static_cast<double>(val);
+            } else if constexpr (std::is_same_v<T, float>) {
+                return static_cast<double>(val);
+            } else if constexpr (std::is_same_v<T, double>) {
+                return val;
+            } else if constexpr (std::is_same_v<T, std::string>) {
+                try {
+                    size_t idx;
+                    double num = std::stod(val, &idx);
+                    if (idx != val.length()) return nil{};
+                    return num;
+                } catch (...) {
+                    return nil{};
+                }
+            } else {
+                return nil{};
+            }
+        }, arg);
+
+        return result;
+    }
+
+
+
+    case build_in::SUB_STR:
+        {
             if (ARGS_QUE.empty()) return nil{};
-            Var arg = ARGS_QUE.top().front(); ARGS_QUE.pop();
+            if (ARGS_QUE.top().empty()) return nil{};
+
+            std::queue<Var> args_q = ARGS_QUE.top();
+            ARGS_QUE.pop();
+
+            // 取第一個參數 (string)
+            if (args_q.empty()) return nil{};
+            Var arg0 = args_q.front(); args_q.pop();
+            if (!std::holds_alternative<std::string>(arg0)) return nil{};
+            std::string str = std::get<std::string>(arg0);
+
+            // 取第二個參數 (start index)
+            if (args_q.empty()) return nil{};
+            Var arg1 = args_q.front(); args_q.pop();
+            if (!std::holds_alternative<int>(arg1)) return nil{};
+            int start = std::get<int>(arg1);
+            if (start < 0 || start >= (int)str.length()) return nil{};
+
+            // 第三個參數（長度）是可選的
+            int length = -1;
+            if (!args_q.empty()) {
+                Var arg2 = args_q.front(); args_q.pop();
+                if (!std::holds_alternative<int>(arg2)) return nil{};
+                length = std::get<int>(arg2);
+                if (length < 0) return nil{};
+            }
+
+            int substr_length = (length == -1) ? (int)str.length() - start : length;
+            if (start + substr_length > (int)str.length()) return nil{};
+
+            std::string substr = str.substr(start, substr_length);
+            return substr;
+        }
+
+
+
+
+
+
+
+
+
+        case build_in::ERROR: {
+        if (ARGS_QUE.empty()) {
+            std::cerr << "\033[1;31m[ERROR]\033[0m No error message provided." << std::endl;
+            return nil{};
+        }
+
+        std::queue<Var> temp_q = ARGS_QUE.top();
+        ARGS_QUE.pop();
+
+        std::vector<Var> args;
+        while (!temp_q.empty()) {
+            args.push_back(temp_q.front());
+            temp_q.pop();
+        }
+
+        std::cerr << "\033[1;31m[ERROR] ";  // 紅色開始
+        for (const auto& arg : args) {
             std::visit([](auto&& val) {
                 using T = std::decay_t<decltype(val)>;
                 if constexpr (std::is_same_v<T, nil>) {
-                    std::cout << "nil" << std::endl;
+                    std::cerr << "$nil ";
                 } else if constexpr (std::is_same_v<T, bool>) {
-                    std::cout << (val ? "true" : "false") << std::endl;
+                    std::cerr << (val ? "$true " : "$false ");
                 } else if constexpr (std::is_same_v<T, std::string>) {
-                    std::cout << "\"" << val << "\"" << std::endl;
+                    std::cerr << val ;
                 } else if constexpr (std::is_same_v<T, function>) {
-                    std::cout << "function" << std::endl;
+                    std::cerr << "$function ";
                 } else if constexpr (std::is_same_v<T, std::shared_ptr<table>>) {
-                    std::cout << "table: " << val.get() << std::endl;
+                    std::cerr << "$table " << val.get();
                 } else {
-                    std::cout << val << std::endl;  // int, float, double
+                    std::cerr << val ;
                 }
             }, arg);
-            return arg;
+        }
+            std::cerr << "\033[0m" << std::endl; 
+            std::exit(-1);
+        }
+        case build_in::PRINT: {
+            if (ARGS_QUE.empty()) return nil{};
+            if (ARGS_QUE.top().empty()) {cout << "$nil" ; return  nil{} ;} 
+            
+
+            vector<Var>  Args_v = vector<Var>(0);
+            std::queue<Var> temp_q = ARGS_QUE.top();
+            while (!temp_q.empty()) {
+            Args_v.push_back(temp_q.front());
+            temp_q.pop();
+            }
+            
+        
+            //    Var arg = ARGS_QUE.top().front(); ARGS_QUE.pop();
+            
+        Var last = nil{};
+        for (const auto& arg : Args_v) {
+            std::visit([](auto&& val) {
+                using T = std::decay_t<decltype(val)>;
+                if constexpr (std::is_same_v<T, nil>) {
+                    std::cout << "$nil" ;
+                } else if constexpr (std::is_same_v<T, bool>) {
+                    std::cout << (val ? "$true" : "$false") ;
+                } else if constexpr (std::is_same_v<T, std::string>) {
+                    std::cout << val ;
+                } else if constexpr (std::is_same_v<T, function>) {
+                    std::cout << "$function";
+                } else if constexpr (std::is_same_v<T, std::shared_ptr<table>>) {
+                    std::cout << "$table: " << val.get() ;
+                } else {
+                    std::cout << val ;
+                }
+            }, arg);
+            last = arg;
+        }
+        return last;
+    }
+
+
+    case build_in::FOREACH:
+    {
+        if (ARGS_QUE.empty()) return nil{};
+
+        if (ARGS_QUE.top().empty()) return nil{} ; 
+        Var arg = ARGS_QUE.top().front() ; ARGS_QUE.pop();
+        if (is_table(arg))
+        {
+            shared_ptr<table> r_table = std::make_shared<table>(table{}); 
+            shared_ptr<table> k_table = std::make_shared<table>(table{}); 
+            shared_ptr<table> v_table = std::make_shared<table>(table{}); 
+            shared_ptr<table> origin = var_to_table(arg) ;             
+            (*r_table)["key"] = k_table ; 
+            (*r_table)["value"] = v_table  ;   
+            int counter = 0 ; 
+            for (const auto&[key , value ] : *origin )
+            {
+
+                 (*k_table)[counter] = key ; 
+                 (*v_table)[counter] = value ; 
+                 counter ++ ; 
+            }
+            return  r_table  ; 
         }
 
+        return nil{} ; 
+    }
+
     case build_in::LEN: {
-        if (ARGS_QUE.empty()) return Var(0);
+        if (ARGS_QUE.empty()) return nil{};
+        if (ARGS_QUE.top().empty()) return nil{} ; 
+
         Var arg = ARGS_QUE.top().front(); ARGS_QUE.pop();
+        
         if (is_string(arg)) {
             return static_cast<int>(var_to_string(arg).size());
         }
@@ -754,7 +1036,9 @@ Var do_build_in(const string& str)
     }
 
     case build_in::TYPE: {
-        if (ARGS_QUE.empty()) return Var("nil");
+        if (ARGS_QUE.empty()) return nil{};
+        if (ARGS_QUE.top().empty()) return nil{} ; 
+
         Var arg = ARGS_QUE.top().front(); ARGS_QUE.pop();
         switch (get_var_type(arg)) {
             case VarType::INT: return Var("int");
@@ -764,6 +1048,7 @@ Var do_build_in(const string& str)
             case VarType::FUNCTION: return Var("function");
             case VarType::TABLE: return Var("table");
             case VarType::NIL: return Var("nil");
+            default: return Var("nil") ; 
         }
     }
 
@@ -965,7 +1250,7 @@ void Interpreter::execute()
 
                 Var val = Instructions[step].data ; 
                 int step_goto = Instructions[step].data2 ; 
-                function func { step_goto ,  CURRENT_ENV} ;
+                function func { step_goto ,  CURRENT_ENV , var_to_string(val)} ;
                 CURRENT_ENV->VARIABLE_TABLE[var_to_string(val)] = func;   
                 break;
             }
@@ -1009,7 +1294,14 @@ void Interpreter::execute()
                     if (is_table(c) )
                     {
                         shared_ptr<table> c_table = var_to_table(c);
+                        if (!is_nil(a)){
                         (*c_table)[b]=a;
+                        }else
+                        {
+                        (*c_table).erase(b) ; 
+                        }
+                        OPERATION_STACK.push(a);
+                        
                     }else
                     {
                         OPERATION_STACK.push(nil{});
@@ -1043,9 +1335,7 @@ void Interpreter::execute()
 
                 
                 if (get_env != nullptr){
-                  //  cout << "call function " << "step 1.5" ; 
                     get_env->VARIABLE_TABLE[identifier] ; 
-                   // cout << "call function " << "step 1.6" ; 
 
 
                     if (get_var_type(get_env->VARIABLE_TABLE[identifier]) == VarType::FUNCTION)
@@ -1795,10 +2085,15 @@ void Interpreter::printByteCode() {
 
         // 若有操作數，則打印出額外數據
         if (instruction.hasOperand) {
-        //    cout << " Operand: " << instruction.data.get_value();
+
+          if (is_string(instruction.data))
+          {
+            cout << " DATA: " <<var_to_string(instruction.data) ;
+
+          }
         }
         if (instruction.data2 != 0) {
-         //   cout << " Data2: " << instruction.data2;
+        //    cout << " Data2: " << instruction.data2;
         }
         if (instruction.data3 != 0) {
            // cout << " Data3: " << instruction.data3;

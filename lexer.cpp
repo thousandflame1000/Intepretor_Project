@@ -55,9 +55,10 @@ std::unordered_map<std::string, TokenType> key_words = { // 關鍵字
     {"<" , TokenType::LESS_THAN},
     {"<=" , TokenType::NOT_GREATER_THAN},
     {">=" , TokenType::NOT_LESS_THAN},
+    {"~" , TokenType::BITWISE_NOT} , 
     {"=" , TokenType::ASSIGN},
     {"==" ,TokenType::EQUAL} , 
-    
+    {"nil" ,TokenType::NIL} , 
     {"!=" , TokenType::NOT_EQUAL} , 
     
     {"^" , TokenType::BITWISE_XOR} , 
@@ -72,7 +73,6 @@ std::unordered_map<std::string, TokenType> key_words = { // 關鍵字
     {"true" , TokenType::BOOL},
     {"false" , TokenType::BOOL},
     {".." , TokenType::DOTDOT} ,
-    {"class" , TokenType::CLASS} , 
     {"function" , TokenType::FUNCTION} , 
     {"var" ,TokenType::VAR}   ,
     {"ll" , TokenType::LL}
@@ -358,6 +358,9 @@ std::vector<Token> Lexer::tokenize() {
             case TokenType::VAR:
             tokens.push_back(Token(TokenType::VAR , "VAR"))  ; 
                 break ; 
+            case TokenType::NIL:
+            tokens.push_back(Token(TokenType::NIL , "NIL")) ; 
+                break; 
             default:
                 is_push = false ; 
                 break;
@@ -421,8 +424,14 @@ std::vector<Token> Lexer::tokenize() {
             tokens.push_back(Token(TokenType::BITWISE_XOR , "BITWISE_XOR")) ; 
                 break ; 
             case TokenType::MUL:
+
             tokens.push_back(Token(TokenType::MUL , "MUL")) ; 
                 break;
+            case TokenType::BITWISE_NOT :
+            tokens.push_back(Token(TokenType::BITWISE_NOT , "BITWISE_NOT"  ) ) ; 
+                break ;  
+            
+            
             case TokenType::DOT:
                 if (!isEnd())
                 {

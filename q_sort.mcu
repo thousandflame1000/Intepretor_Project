@@ -1,0 +1,82 @@
+function q_sort(arr)
+{
+    if (arr == nil)
+    {
+        print("receive nil") ; 
+        return ; 
+    }
+
+    if (len(arr) <= 1)
+    {
+        return arr;
+    }
+
+    var pivot = arr[0];
+    var left = [];     
+    var right = [];   
+    var left_len = 0;
+    var right_len = 0;
+
+    var i = 1;
+    while (i < len(arr))
+    {
+        if (arr[i] < pivot)
+        {
+            left[left_len] = arr[i];
+            left_len = left_len + 1;
+        }
+        else
+        {
+            right[right_len] = arr[i];
+            right_len = right_len + 1;
+        }
+        i = i + 1;
+    }
+
+    
+    var actual_left = [];
+    var j = 0;
+    while (j < left_len)
+    {
+        actual_left[j] = left[j];
+        j = j + 1;
+    }
+
+    var actual_right = [];
+    j = 0;
+    while (j < right_len)
+    {
+        actual_right[j] = right[j];
+        j = j + 1;
+    }
+
+    var sorted_left = q_sort(actual_left);
+    var sorted_right = q_sort(actual_right);
+
+    
+    var result = [];
+    var k = 0;
+
+    i = 0;
+    while (i < len(sorted_left))
+    {
+        result[k] = sorted_left[i];
+        k = k + 1;
+        i = i + 1;
+    }
+
+
+    result[k] = pivot;
+    k = k + 1;
+
+
+    i = 0;
+    while (i < len(sorted_right))
+    {
+        result[k] = sorted_right[i];
+        k = k + 1;
+        i = i + 1;
+    }
+
+    return result;
+}

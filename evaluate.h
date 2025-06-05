@@ -37,6 +37,7 @@ struct env {
 struct function {
     int ptr; 
     shared_ptr<env> parent ; 
+    string name ; 
 } ;
 
 
@@ -198,7 +199,8 @@ enum class DataType {
     FLOAT,
     BOOLEAN,
     STRING,
-    DOUBLE};
+    DOUBLE
+};
 
 // ByteCode 類別
 class ByteCode {

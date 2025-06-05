@@ -51,6 +51,7 @@ enum class NodeType {
     CHILDREN,
     IF , 
     EMPTY , 
+    NIL , 
     FOR , 
     WHILE , 
     ASSIGN_KEY , 

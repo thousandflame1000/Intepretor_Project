@@ -86,7 +86,8 @@ shared_ptr<Node> Parser::ParseIf()
     if(currentToken().GetType() != TokenType::IF)
     {
         std::runtime_error("IF IS NOT PARSED CORRECTLY ") ; 
-        cout << "IF IS NOT PARSED CORRECTLY " << endl ; 
+        cout << "\'if\' IS NOT PARSED CORRECTLY " << endl ; 
+        ERROR();
     }
     advance() ;
     if_node.addChild(ParseCondition_Do())  ; 
@@ -137,12 +138,13 @@ shared_ptr<Node> Parser::ParsePostProcessing()
         previous() ; // 這邊會對齊(後來會advance 查找 semicolon)
         return std::make_shared<Node> (post_processing) ; 
     }
-    shared_ptr<Node> first_post_processing = ParseAssign_Or_FunctionAsStatemente() ; 
+    shared_ptr<Node> first_post_processing = ParseStatement() ; 
     post_processing.addChild(first_post_processing) ; 
     advance() ; 
     while (currentToken().GetType() == TokenType::COMMA) 
     {
-        shared_ptr<Node> next_init = ParseAssign_Or_FunctionAsStatemente() ;          
+        advance();
+        shared_ptr<Node> next_init = ParseStatement() ;          
         post_processing.addChild(next_init) ; 
         advance() ; 
     }
@@ -165,7 +167,7 @@ shared_ptr<Node> Parser::ParseInit()
         return std::make_shared<Node> (init) ; 
     }    
     
-    shared_ptr<Node> first_init = ParseAssign_Or_FunctionAsStatemente() ; 
+    shared_ptr<Node> first_init = ParseStatement() ; 
     init.addChild(first_init) ; 
    
     advance() ; 
@@ -173,7 +175,7 @@ shared_ptr<Node> Parser::ParseInit()
     while (currentToken().GetType() == TokenType::COMMA ) 
     {
         advance() ; 
-        shared_ptr<Node> next_init = ParseAssign_Or_FunctionAsStatemente() ;          
+        shared_ptr<Node> next_init = ParseStatement() ;          
         init.addChild(next_init) ; 
         advance() ; 
     }
@@ -204,12 +206,14 @@ shared_ptr<Node> Parser::ParseFor()
     {
         std::runtime_error("EXPECTED 'for' TO BEGIN FOR LOOP");
         cout << "EXPECTED 'for' TO BEGIN FOR LOOP" << endl;
+        ERROR(); 
     }
     advance(); // 跳過 'for'
     if (currentToken().GetType() != TokenType::PAREN_OPEN)
     {
         std::runtime_error("EXPECTED '(' AFTER 'for'");
         cout << "EXPECTED '(' AFTER 'for'" << endl;
+        ERROR();
     }
     advance(); // 跳過 '('
     // 解析初始化部分
@@ -219,7 +223,7 @@ shared_ptr<Node> Parser::ParseFor()
     {
         std::runtime_error("EXPECTED ';' AFTER INIT STATEMENT");
         cout << "EXPECTED ';' AFTER INIT STATEMENT" << endl;
-        cout<< "INIT:" << currentToken().GetValue() <<endl ; 
+        ERROR() ; 
     }
     advance(); // 跳過 ';'，結束初始化部分
 
@@ -232,6 +236,7 @@ shared_ptr<Node> Parser::ParseFor()
     {
         std::runtime_error("EXPECTED ';' AFTER CONDITION");
         cout << "EXPECTED ';' AFTER CONDITION" << endl;
+        ERROR();
     }
     advance(); // 跳過 ';'，結束條件部分
 
@@ -240,9 +245,8 @@ shared_ptr<Node> Parser::ParseFor()
     advance() ; 
     if (currentToken().GetType() != TokenType::PAREN_CLOSE)
     {
-        std::runtime_error("EXPECTED ')' AFTER POST STATEMENT");
-        cout << "EXPECTED ')' AFTER POST STATEMENT" << endl;
-        cout << currentToken().GetValue() << endl ; 
+        cout << "EXPECTED ')' AFTER UPDATE" << endl;
+        ERROR();
     }
     advance() ; 
     // 解析迴圈體（block）
@@ -267,6 +271,7 @@ shared_ptr<Node> Parser::ParseWhile() // -->對齊 WHILE
     {
         std::runtime_error("WHILE IS NOT PARSED CORRECTLY ") ; 
         cout << "WHILE IS NOT PARSED CORRECTLY " << endl ; 
+        ERROR(); 
     }
     Node while_block (NodeType::WHILE , "WHILE") ; 
     advance() ; 
@@ -282,8 +287,8 @@ shared_ptr<Node> Parser::ParseBlock()
     // 確認是否遇到 '{' 開始區塊
     if (currentToken().GetType() != TokenType::BRACE_OPEN)
     {
-        std::runtime_error("EXPECTED '{' TO BEGIN BLOCK");
         cout << "EXPECTED '{' TO BEGIN BLOCK" << endl;
+        ERROR();
     }
 
     advance(); // 跳過 '{'
@@ -301,6 +306,7 @@ shared_ptr<Node> Parser::ParseBlock()
         if (Match(TokenType::END))
         {
             cout<<"EXPECT '}' TO END BLOCK " << endl ;    // 跳過 ';'
+            ERROR();
             break;
         }
         // 處理每一個語句或結構
@@ -356,7 +362,7 @@ shared_ptr<Node> Parser::ParseBlock()
     {
         std::runtime_error("EXPECTED '}' TO END BLOCK");
         cout << "EXPECTED '}' TO END BLOCK" << endl;
-        cout << currentToken().GetValue() << endl ; 
+        ERROR() ; 
     }
     return block_node;
 }
@@ -386,7 +392,7 @@ shared_ptr<Node> Parser::ParseArguments()   /// ARGUMENTS 入口從 '('的後一
     if (!Match(TokenType::PAREN_CLOSE))
     {
         cout << "ARGUMENT IS NOT PARSED " << endl ; 
-        cout << currentToken().GetValue() << endl ; 
+        ERROR() ; 
     }
     return std::make_shared<Node> (arguments); 
 }
@@ -410,18 +416,20 @@ shared_ptr <Node> Parser::ParseCondition_Do ()
     if (currentToken().GetType() != TokenType::PAREN_OPEN)
     {
         cout << "EXPECTED '(' CONDITION_DO"  << endl ; 
+        ERROR()  ;
     }
     advance();
     if (currentToken().GetType() == TokenType::PAREN_CLOSE)
     {
         cout << "EXPECTED AN EXPRESSION IN CONDITION DO "  << endl ; 
+        ERROR() ; 
     }
     shared_ptr<Node> l_ptr = ParseAssign_Or_FunctionAsStatemente() ; 
     advance() ; 
     if (currentToken().GetType() != TokenType::PAREN_CLOSE)
     {
         cout << "EXPECTED ')' CONDITION_DO"  << endl ; 
-        cout << currentToken().GetValue() << endl ; 
+        ERROR() ; 
     }
     advance(); 
     shared_ptr<Node> r_ptr = ParseBlock() ; 
@@ -455,6 +463,7 @@ shared_ptr <Node> Parser::ParseCondition_Do ()
      if (!Match(TokenType::PAREN_CLOSE))
      {
          cout << "ARGUMENT IS NOT PARSED " << endl ; 
+         ERROR() ; 
      }
      return std::make_shared<Node> (arguments); 
  }
@@ -467,6 +476,7 @@ shared_ptr<Node> Parser::ParseCreateFunction()
     if (currentToken().GetType() != TokenType::FUNCTION) 
     {
         cout << "ERROR WHEN PARSING CREATE FUNCTION " << endl ; 
+        ERROR() ; 
     }
 
     Node f(NodeType::FUNCTION , "FUNCTION") ; 
@@ -475,6 +485,7 @@ shared_ptr<Node> Parser::ParseCreateFunction()
     if (currentToken().GetType() != TokenType::IDENTIFIER) 
     {
         cout << "EXPECTED IDENTIFIER WHEN PARSING FUNCTION " << endl ; 
+        ERROR() ; 
     }
 
    f.value =currentToken().GetValue() ; 
@@ -509,10 +520,12 @@ shared_ptr<Node> Parser::ParseCreateVariable()
         if (currentToken().GetType() != TokenType::VAR)
         {
             cout << "ERROR WHEN NOT FOUND VAR AND TRY TO PARSE IT " << endl ;  
+            ERROR() ; 
         }
         else
         {
             cout << "ERROR WHEN PARSING CREATE VARIABLE"  << endl ; 
+            ERROR() ; 
         }
         shared_ptr<Node> return_pointer = std::make_shared<Node> (declare_node) ; 
         return return_pointer ; 
@@ -1004,6 +1017,7 @@ shared_ptr<Node> Parser::ParseFactor()
         if (currentToken().GetType() == TokenType::PAREN_CLOSE)
         {
             cout <<"EXPECTED AN EXPRESSION " <<endl ;             
+            ERROR() ; 
         }
         shared_ptr<Node> return_pointer =  ParseLogic_OR() ; //  
         advance() ; /// ahh ?? 
@@ -1014,7 +1028,7 @@ shared_ptr<Node> Parser::ParseFactor()
         else
         {
             cout <<"PAREN IS NOT PARSED  " <<endl ; 
-            cout << currentToken().GetValue() << endl ; 
+            ERROR() ; 
             return return_pointer ; 
         }
     }
@@ -1049,7 +1063,9 @@ shared_ptr<Node> Parser::ParseTable()
     if (!Match(TokenType::BRACKET_CLOSE))
     {
         cout << "TABLE IS NOT PARSED " << endl ; 
-        cout << currentToken().GetValue() << endl ; 
+        ERROR() ; 
+
+
     }
     return std::make_shared<Node> (table); 
 
@@ -1072,6 +1088,12 @@ shared_ptr<Node> Parser::ParseDots_Or_NonNumericValue()
     if (currentToken().GetType() == TokenType::IDENTIFIER)
     {
         return ParseObject();
+    }
+    if (currentToken().GetType() == TokenType::NIL)
+    {
+        Node const_node (NodeType::NIL , currentToken().GetValue()) ; 
+        shared_ptr<Node> return_pointer = std::make_shared<Node> (const_node) ; 
+        return return_pointer ;
     }
     if(currentToken().GetType() == TokenType::STRING)
     {
@@ -1108,9 +1130,8 @@ shared_ptr<Node> Parser::ParseDots_Or_NonNumericValue()
 
 
     Node idk (NodeType::UNKNOWN , "UNKNOWN in ParseDots_Or_NonNumericValue ") ;
-    cout <<"UNKNOWN in ParseDots_Or_NonNumericValue :"<<currentToken().GetValue() << endl ; 
-    
-    std::runtime_error ("UNKNOWN TYPE") ; 
+    cout <<"UNKNOWN in ParseDots_Or_NonNumericValue"<< endl ; 
+    ERROR() ;     
     shared_ptr<Node> idk_ptr = std::make_shared<Node> (idk )  ;  
     return  idk_ptr ; 
 }
@@ -1138,7 +1159,8 @@ shared_ptr<Node> Parser::ParseFloat_Double()      ///// <float> :: <number> |"."
                 
             }  
             else{
-                std::runtime_error("INVALID TOKEN AFTER \'.\'") ; 
+                cout << "INVALID TOKEN AFTER \'.\'" << endl  ; 
+                ERROR(); 
             }      
         }
         else if (nextToken().GetType() == TokenType::DOTDOT) 
@@ -1160,7 +1182,9 @@ shared_ptr<Node> Parser::ParseFloat_Double()      ///// <float> :: <number> |"."
                 
             }  
             else{
-                std::runtime_error("INVALID TOKEN AFTER \'..\'") ; 
+                cout << "INVALID TOKEN AFTER \'..\'" ;  
+                ERROR() ; 
+                
             }
         }
     }
@@ -1174,14 +1198,14 @@ shared_ptr<Node> Parser::ParseObject() // suspecious here
     shared_ptr<Node> l_ptr = ParseCallFunction_Or_Variable_Or_Indexing() ; 
   
   
-    while (nextToken().GetType() == TokenType::DOT)
+    /*while (nextToken().GetType() == TokenType::DOT)
     {
         advance() ; 
         if(nextToken().GetType() == TokenType::IDENTIFIER)
         {
             advance() ; 
-            shared_ptr<Node> r_ptr = ParseCallFunction_Or_Variable_Or_Indexing() ;   // not here 
-            Node operation (NodeType::CHILDREN , "CHILDREN") ; 
+            shared_ptr<Node> r_ptr = std::make_shared<Node> (NodeType::STRING , currentToken().GetValue()) ;   // not here 
+            Node operation (NodeType::INDEX , "CHILDREN") ; 
             operation.addChild(l_ptr) ; 
             operation.addChild(r_ptr) ; 
             shared_ptr<Node> return_pointer = std::make_shared<Node> (operation) ; 
@@ -1191,8 +1215,9 @@ shared_ptr<Node> Parser::ParseObject() // suspecious here
         else
         {
             cout << "INVALID TOKEN " << currentToken().GetValue() << " AFTER '.' "<<endl ; 
+            ERROR() ; 
         }
-    }
+    }*/
     shared_ptr<Node> return_pointer ; 
     return_pointer = l_ptr ; 
     return return_pointer;
@@ -1201,8 +1226,9 @@ shared_ptr<Node> Parser::ParseCallFunction_Or_Variable_Or_Indexing() // here !!
 {
     if (currentToken().GetType() != TokenType::IDENTIFIER )
     {
-        cout << "EXPECTED IDENTIFIER IN FUNCTION OR SOMETHING ELSE ;/ " ; 
-        cout << currentToken().GetValue() << endl ; 
+        cout << "EXPECTED IDENTIFIER IN FUNCTION OR SOMETHING ELSE ;/ " ;  
+        ERROR() ; 
+
     }   
     Node var (NodeType::VARIABLE , currentToken().GetValue()) ;
     shared_ptr<Node> var_ptr = std::make_shared<Node> (var) ; 
@@ -1250,10 +1276,14 @@ shared_ptr<Node> Parser::ParseIndexing()
     if (currentToken().GetType() != TokenType::BRACKET_OPEN)
     {
         cout << "EXPECTED '[' PARSING INDEXING " << endl ; 
+        ERROR() ; 
+
     }
     if (nextToken().GetType() == TokenType::BRACKET_CLOSE)
     {
         cout << "KEY SHOULD NOT EMPTY WHEN INDEXING " << endl ;
+        ERROR() ; 
+
     }
     advance() ;
     shared_ptr<Node> index_key =  ParseAssign_Or_FunctionAsStatemente() ; 
@@ -1261,6 +1291,8 @@ shared_ptr<Node> Parser::ParseIndexing()
     if (currentToken().GetType() != TokenType::BRACKET_CLOSE )
     {
         cout << "EXPECTED ']' PARSING INDEXING " << endl ; 
+        ERROR() ; 
+
     }
 
     return index_key; 
